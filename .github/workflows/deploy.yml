@@ -1,0 +1,40 @@
+name: Deploy Resource Packs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Zip legacy pack
+        run: zip -r legacy-pack.zip pack/legacy
+
+      - name: Zip new pack
+        run: zip -r new-pack.zip pack/new
+
+      - name: Calculate SHA-1 for legacy pack
+        id: sha_legacy
+        run: echo "::set-output name=sha1::$(sha1sum legacy-pack.zip | cut -d' ' -f1)"
+
+      - name: Calculate SHA-1 for new pack
+        id: sha_new
+        run: echo "::set-output name=sha1::$(sha1sum new-pack.zip | cut -d' ' -f1)"
+
+      - name: Create GitHub Release and upload zips
+        uses: softprops/action-gh-release@v1
+        with:
+          files: legacy-pack.zip,new-pack.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show SHA-1 hashes
+        run: |
+          echo "Legacy pack SHA-1: ${{ steps.sha_legacy.outputs.sha1 }}"
+          echo "New pack SHA-1: ${{ steps.sha_new.outputs.sha1 }}"
