@@ -2,39 +2,46 @@ name: Deploy Resource Packs
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
+      - name: Checkout private repo
+        uses: actions/checkout@v3
 
-      - name: Zip legacy pack
-        run: zip -r legacy-pack.zip pack/legacy
-
-      - name: Zip new pack
-        run: zip -r new-pack.zip pack/new
-
-      - name: Calculate SHA-1 for legacy pack
-        id: sha_legacy
-        run: echo "::set-output name=sha1::$(sha1sum legacy-pack.zip | cut -d' ' -f1)"
-
-      - name: Calculate SHA-1 for new pack
-        id: sha_new
-        run: echo "::set-output name=sha1::$(sha1sum new-pack.zip | cut -d' ' -f1)"
-
-      - name: Create GitHub Release and upload zips
-        uses: softprops/action-gh-release@v1
-        with:
-          files: legacy-pack.zip,new-pack.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Show SHA-1 hashes
+      - name: Zip legacy and new packs
         run: |
-          echo "Legacy pack SHA-1: ${{ steps.sha_legacy.outputs.sha1 }}"
-          echo "New pack SHA-1: ${{ steps.sha_new.outputs.sha1 }}"
+          mkdir -p out
+          zip -r out/legacy-pack.zip pack/legacy
+          zip -r out/new-pack.zip pack/new
+
+      - name: Generate SHA-1 hashes
+        run: |
+          sha1sum out/legacy-pack.zip | awk '{print $1}' > out/legacy-pack.sha1
+          sha1sum out/new-pack.zip | awk '{print $1}' > out/new-pack.sha1
+
+      - name: Checkout public repo
+        uses: actions/checkout@v3
+        with:
+          repository: yourusername/mc-pack-hosting
+          token: ${{ secrets.PUBLIC_REPO_PAT }}
+          path: public
+
+      - name: Copy artifacts to public repo
+        run: |
+          mkdir -p public/legacy public/new
+          cp out/legacy-pack.zip public/legacy/
+          cp out/legacy-pack.sha1 public/legacy/
+          cp out/new-pack.zip public/new/
+          cp out/new-pack.sha1 public/new/
+
+      - name: Commit and push
+        run: |
+          cd public
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Update resource packs"
+          git push
