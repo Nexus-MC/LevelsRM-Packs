@@ -14,9 +14,8 @@ jobs:
       - name: Zip legacy and new packs
         run: |
           mkdir -p out
-          cd pack/legacy && zip -r ../../out/legacy-pack.zip . && cd ../..
-          cd pack/new && zip -r ../../out/new-pack.zip . && cd ../..
-
+          zip -r out/legacy-pack.zip pack/legacy
+          zip -r out/new-pack.zip pack/new
 
       - name: Generate SHA-1 hashes
         run: |
