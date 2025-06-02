@@ -25,7 +25,7 @@ jobs:
       - name: Checkout public repo
         uses: actions/checkout@v3
         with:
-          repository: yourusername/mc-pack-hosting
+          repository: Nexus-MC/LevelsRM-Packs
           token: ${{ secrets.PUBLIC_REPO_PAT }}
           path: public
 
